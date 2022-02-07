@@ -1,0 +1,18 @@
+[
+    {
+        "ID": 1,
+        "Artist": "Naomí Yepes",
+        "HasGrammyAward": false,
+        "Debut": 2011,
+        "GrammyNominations": 6,
+        "GrammyAwards": 0
+    },
+    {
+        "ID": 2,
+        "Artist": "Babila Ebwélé",
+        "HasGrammyAward": true,
+        "Debut": 2009,
+        "GrammyNominations": 0,
+        "GrammyAwards": 11
+    }
+]

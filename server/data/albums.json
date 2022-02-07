@@ -1,0 +1,58 @@
+[
+    {
+        "ParentID": 1,
+        "Album": "Initiation",
+        "LaunchDate": "2013-09-02T21:00:00.000Z",
+        "BillboardReview": 86,
+        "USBillboard200": 1,
+        "Artist": "Naomí Yepes"
+    },
+    {
+        "ParentID": 1,
+        "Album": "Dream Driven",
+        "LaunchDate": "2014-08-24T21:00:00.000Z",
+        "BillboardReview": 81,
+        "USBillboard200": 1,
+        "Artist": "Naomí Yepes"
+    },
+    {
+        "ParentID": 1,
+        "Album": "The dragon journey",
+        "LaunchDate": "2016-05-19T21:00:00.000Z",
+        "BillboardReview": 60,
+        "USBillboard200": 2,
+        "Artist": "Naomí Yepes"
+    },
+    {
+        "ParentID": 1,
+        "Album": "Organic me",
+        "LaunchDate": "2018-08-16T21:00:00.000Z",
+        "BillboardReview": 82,
+        "USBillboard200": 1,
+        "Artist": "Naomí Yepes"
+    },
+    {
+        "ParentID": 1,
+        "Album": "Curiosity",
+        "LaunchDate": "2019-12-06T22:00:00.000Z",
+        "BillboardReview": 75,
+        "USBillboard200": 12,
+        "Artist": "Naomí Yepes"
+    },
+    {
+        "ParentID": 2,
+        "Album": "Pushing up daisies",
+        "LaunchDate": "2000-05-30T21:00:00.000Z",
+        "BillboardReview": 86,
+        "USBillboard200": 42,
+        "Artist": "Babila Ebwélé"
+    },
+    {
+        "ParentID": 2,
+        "Album": "Death's dead",
+        "LaunchDate": "2016-06-07T21:00:00.000Z",
+        "BillboardReview": 85,
+        "USBillboard200": 95,
+        "Artist": "Babila Ebwélé"
+    }
+]
