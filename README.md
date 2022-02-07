@@ -1,6 +1,6 @@
 # Ignite UI for Angular - Hierarchical Grid Integration with GraphQL
 
-This application is a sample demonstrating how Ignite UI for Angular Grid could work with GraphQL.
+This application is a sample demonstrating how the Ignite UI for Angular Hierarchical Grid could work with GraphQL.
 
 ## Build Setup
 
