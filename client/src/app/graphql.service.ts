@@ -46,7 +46,7 @@ export class GraphQLService {
         const result: IFilteringOperand[] = [];
 
         filteringOperands.forEach(operand => {
-            const fieldName = operand.FieldName;
+            const fieldName = operand.fieldName;
             const searchValueString = typeof operand.searchVal === 'string' ? operand.searchVal : '';
             const searchValueNumber = typeof operand.searchVal === 'number' ? operand.searchVal : null;
             const conditionName = operand.condition.name;

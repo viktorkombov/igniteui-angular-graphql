@@ -55,20 +55,20 @@ const resolvers = {
 };
 
 function filterFunction(data, filteringOperands, parentID = undefined) {
-    const result = data.slice();
-    if (filteringOperands) {
+    let result = data.slice();
+    if (filteringOperands?.length) {
         filteringOperands.forEach(operand => {
             result = result.filter(record => {
+
                 if (parentID) {
-                    if (parentID === record.ParentID) {
+                    if (parentID !== record.ParentID) {
                         return false;
                     }
                 }
 
                 const fieldName = operand.fieldName;
                 const filterValue = operand.searchValueString ? operand.searchValueString : operand.searchValueNumber;
-
-                switch (operand.condition.name) {
+                switch (operand.conditionName) {
                     case 'contains': {
                         return record[fieldName].includes(filterValue);
                     }
@@ -114,6 +114,8 @@ function filterFunction(data, filteringOperands, parentID = undefined) {
                 }
             })
         })
+    } else if (parentID) {
+        result = result.filter(record => record.ParentID === parentID);
     }
     return result;
 }
