@@ -1,7 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { IGridCreatedEventArgs, IgxColumnComponent, IgxHierarchicalGridComponent } from 'igniteui-angular';
-import { Subject } from 'rxjs';
-import { debounceTime, takeUntil } from 'rxjs/operators'
 import { GraphQLService, IDataState } from '../graphql.service';
 
 @Component({
@@ -12,8 +10,6 @@ import { GraphQLService, IDataState } from '../graphql.service';
 export class CustomHierarchicalGridComponent implements AfterViewInit {
   @ViewChild('hGrid', { read: IgxHierarchicalGridComponent })
   public hGrid!: IgxHierarchicalGridComponent;
-
-  public remoteData: any = [];
 
   constructor(@Inject(GraphQLService) private remoteService: GraphQLService, public cdr: ChangeDetectorRef) { }
 
@@ -29,16 +25,28 @@ export class CustomHierarchicalGridComponent implements AfterViewInit {
     });
   }
 
+  public dateFormatter(val: string) {
+    return new Intl.DateTimeFormat('en-US').format(new Date(val));
+  }
+
+  public gridCreated(event: IGridCreatedEventArgs, _parentKey: string) {
+    this.updateChildGridData(event.grid, _parentKey, event.parentID, [])
+
+    event.grid.advancedFilteringExpressionsTreeChange.subscribe(e => {
+      if (e) {
+        this.updateChildGridData(event.grid, _parentKey, event.parentID, e.filteringOperands);
+      } else {
+        this.updateChildGridData(event.grid, _parentKey, event.parentID, []);
+      }
+    });
+  }
+
   private updateRootGridData(filteringOperands: any[]): void {
     const dataState: IDataState = {
       parentID: '',
       parentKey: 'Artists'
     };
     this.hGrid.isLoading = true;
-
-    if (!filteringOperands) {
-      filteringOperands
-    }
 
     this.remoteService.getData(dataState, filteringOperands).subscribe(
       (data: any[]) => {
@@ -52,11 +60,10 @@ export class CustomHierarchicalGridComponent implements AfterViewInit {
         this.hGrid.cdr.detectChanges();
       }
     );
-
   }
 
-  private updateChildGridData(grid: IgxHierarchicalGridComponent, parentKey: any, parentID: any, filteringOperands: any[]) {
-
+  private updateChildGridData(grid: IgxHierarchicalGridComponent, parentKey: any,
+    parentID: any, filteringOperands: any[]) {
     const dataState: IDataState = {
       parentID: parentID,
       parentKey: parentKey,
@@ -75,22 +82,6 @@ export class CustomHierarchicalGridComponent implements AfterViewInit {
         grid.cdr.detectChanges();
       }
     );
-  }
-
-  public dateFormatter(val: string) {
-    return new Intl.DateTimeFormat('en-US').format(new Date(val));
-  }
-
-  public gridCreated(event: IGridCreatedEventArgs, _parentKey: string) {
-    this.updateChildGridData(event.grid, _parentKey, event.parentID, [])
-    
-    event.grid.advancedFilteringExpressionsTreeChange.subscribe(e => {
-      if (e) {
-        this.updateChildGridData(event.grid, _parentKey, event.parentID, e.filteringOperands);
-      } else {
-        this.updateChildGridData(event.grid, _parentKey, event.parentID, []);
-      }
-    });
   }
 }
 

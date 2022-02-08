@@ -27,9 +27,11 @@ export class GraphQLService {
     constructor(private apollo: Apollo) { }
 
     public getData(dataState: IDataState, filteringOperands?: any): any {
-        const builtFilteringExpressions = this.buildFilteringExpresions(filteringOperands);
-        const query = dataState.parentKey === 'Artists' ? queries.getArtists : (dataState.parentKey === 'Albums' ? queries.getAlbums : queries.getSongs);
-        const variables = dataState.parentID ? { filteringOperands: builtFilteringExpressions, parentID: dataState.parentID } : { filteringOperands: builtFilteringExpressions }
+        const builtFilteringExpressions = this.buildQueries(filteringOperands);
+        const query = dataState.parentKey === 'Artists' ? queries.getArtists :
+            (dataState.parentKey === 'Albums' ? queries.getAlbums : queries.getSongs);
+        const variables = dataState.parentID ? { filteringOperands: builtFilteringExpressions, parentID: dataState.parentID } :
+            { filteringOperands: builtFilteringExpressions }
 
         return this.apollo
             .watchQuery({
@@ -40,15 +42,18 @@ export class GraphQLService {
             .pipe(map((response: IDataResponse | any) => response.data[dataState.parentKey]))
     }
 
-    public buildFilteringExpresions(filteringOperands: any[] = []): any {
+    public buildQueries(filteringOperands: any[] = []): any {
         const result: IFilteringOperand[] = [];
+
         filteringOperands.forEach(operand => {
             const fieldName = operand.FieldName;
             const searchValueString = typeof operand.searchVal === 'string' ? operand.searchVal : '';
             const searchValueNumber = typeof operand.searchVal === 'number' ? operand.searchVal : null;
             const conditionName = operand.condition.name;
+
             result.push({ fieldName, searchValueString, searchValueNumber, conditionName });
         });
+
         return JSON.stringify(result);
     }
 }
