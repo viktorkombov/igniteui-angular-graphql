@@ -1,5 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, Inject, OnInit, ViewChild } from '@angular/core';
-import { IGridCreatedEventArgs, IgxColumnComponent, IgxHierarchicalGridComponent } from 'igniteui-angular';
+import { FilteringLogic, IGridCreatedEventArgs, IgxColumnComponent, IgxHierarchicalGridComponent } from 'igniteui-angular';
 import { GraphQLService, IDataState } from '../graphql.service';
 
 @Component({
@@ -14,13 +14,13 @@ export class CustomHierarchicalGridComponent implements AfterViewInit {
   constructor(@Inject(GraphQLService) private remoteService: GraphQLService, public cdr: ChangeDetectorRef) { }
 
   public ngAfterViewInit() {
-    this.updateRootGridData([]);
+    this.updateRootGridData([], FilteringLogic.And);
 
     this.hGrid.advancedFilteringExpressionsTreeChange.subscribe(e => {
       if (e) {
-        this.updateRootGridData(e.filteringOperands)
+        this.updateRootGridData(e.filteringOperands, e.operator)
       } else {
-        this.updateRootGridData([]);
+        this.updateRootGridData([], FilteringLogic.And);
       }
     });
   }
@@ -29,26 +29,26 @@ export class CustomHierarchicalGridComponent implements AfterViewInit {
     return new Intl.DateTimeFormat('en-US').format(new Date(val));
   }
 
-  public gridCreated(event: IGridCreatedEventArgs, _parentKey: string) {
-    this.updateChildGridData(event.grid, _parentKey, event.parentID, [])
+  public gridCreated(event: IGridCreatedEventArgs, _key: string) {
+    this.updateChildGridData(event.grid, _key, event.parentID, [], FilteringLogic.And)
 
     event.grid.advancedFilteringExpressionsTreeChange.subscribe(e => {
       if (e) {
-        this.updateChildGridData(event.grid, _parentKey, event.parentID, e.filteringOperands);
+        this.updateChildGridData(event.grid, _key, event.parentID, e.filteringOperands, e.operator);
       } else {
-        this.updateChildGridData(event.grid, _parentKey, event.parentID, []);
+        this.updateChildGridData(event.grid, _key, event.parentID, [], FilteringLogic.And);
       }
     });
   }
 
-  private updateRootGridData(filteringOperands: any[]): void {
+  private updateRootGridData(filteringOperands: any[], filteringOperator?: FilteringLogic): void {
     const dataState: IDataState = {
       parentID: '',
-      parentKey: 'Artists'
+      key: 'Artists'
     };
     this.hGrid.isLoading = true;
 
-    this.remoteService.getData(dataState, filteringOperands).subscribe(
+    this.remoteService.getData(dataState, filteringOperands, filteringOperator).subscribe(
       (data: any[]) => {
         this.hGrid.isLoading = false;
         this.hGrid.data = data;
@@ -62,15 +62,15 @@ export class CustomHierarchicalGridComponent implements AfterViewInit {
     );
   }
 
-  private updateChildGridData(grid: IgxHierarchicalGridComponent, parentKey: any,
-    parentID: any, filteringOperands: any[]) {
+  private updateChildGridData(grid: IgxHierarchicalGridComponent, key: any,
+    parentID: any, filteringOperands: any[], filteringOperator?: FilteringLogic) {
     const dataState: IDataState = {
       parentID: parentID,
-      parentKey: parentKey,
+      key: key,
     };
     grid.isLoading = true;
 
-    this.remoteService.getData(dataState, filteringOperands).subscribe(
+    this.remoteService.getData(dataState, filteringOperands, filteringOperator).subscribe(
       (data: any[]) => {
         grid.isLoading = false;
         grid.data = data;

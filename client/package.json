@@ -18,8 +18,6 @@
     "@angular/platform-browser": "~13.0.0",
     "@angular/platform-browser-dynamic": "~13.0.0",
     "@angular/router": "~13.0.0",
-    "@apollo/client": "^3.5.8",
-    "apollo-angular": "^2.6.0",
     "graphql": "^15.0.0",
     "core-js": "^3.6.5",
     "hammerjs": "^2.0.8",

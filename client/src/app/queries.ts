@@ -1,6 +1,4 @@
-import { gql } from 'apollo-angular'
-
-const getArtists = gql`
+const Artists = `
 query GetArtists($filteringOperands: [ID!]) {
         Artists(filteringOperands: $filteringOperands){
               ID
@@ -13,7 +11,7 @@ query GetArtists($filteringOperands: [ID!]) {
   }
 `;
 
-const getAlbums = gql`
+const Albums = `
 query GetAlbums($filteringOperands: [ID!], $parentID: Int) {
         Albums(filteringOperands: $filteringOperands, parentID: $parentID) {
               Album
@@ -25,7 +23,7 @@ query GetAlbums($filteringOperands: [ID!], $parentID: Int) {
 }   
 `;
 
-const getSongs = gql`
+const Songs = `
 query GetSongs($filteringOperands: [ID!], $parentID: String) {
         Songs(filteringOperands: $filteringOperands, parentID: $parentID) {
               TrackNumber
@@ -38,7 +36,7 @@ query GetSongs($filteringOperands: [ID!], $parentID: String) {
 `;
 
 export const queries = {
-  getArtists,
-  getAlbums,
-  getSongs
+  Artists,
+  Albums,
+  Songs
 }
