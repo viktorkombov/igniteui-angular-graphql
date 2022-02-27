@@ -1,6 +1,6 @@
 const Artists = `
-query GetArtists($filteringOperands: [ID!]) {
-        Artists(filteringOperands: $filteringOperands){
+query GetArtists($filter: FilterInput) {
+        Artists(_filter: $filter){
               ID
               Artist
               HasGrammyAward
@@ -12,8 +12,8 @@ query GetArtists($filteringOperands: [ID!]) {
 `;
 
 const Albums = `
-query GetAlbums($filteringOperands: [ID!], $parentID: Int) {
-        Albums(filteringOperands: $filteringOperands, parentID: $parentID) {
+query GetAlbums($parentID: Int, $filter: FilterInput) {
+        Albums(parentID: $parentID, _filter: $filter) {
               Album
               LaunchDate
               BillboardReview
@@ -24,8 +24,8 @@ query GetAlbums($filteringOperands: [ID!], $parentID: Int) {
 `;
 
 const Songs = `
-query GetSongs($filteringOperands: [ID!], $parentID: String) {
-        Songs(filteringOperands: $filteringOperands, parentID: $parentID) {
+query GetSongs($parentID: String, $filter: FilterInput) {
+        Songs(parentID: $parentID, _filter: $filter) {
               TrackNumber
               Title
               Released

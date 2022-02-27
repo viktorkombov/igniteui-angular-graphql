@@ -11,20 +11,27 @@ const httpOptions = {
         'Content-Type': 'application/json'
     })
 };
+
 interface IDataResponse {
     value: any[];
-}
-
-interface IFilteringOperand {
-    fieldName: string;
-    searchValueString: string;
-    searchValueNumber: number | null;
-    conditionName: string;
 }
 
 export interface IDataState {
     parentID: any;
     key: string;
+}
+
+enum FILTER_OPERATION {
+    CONTAINS = 'contains',
+    STARTS_WITH = 'startswith',
+    ENDS_WITH = 'endswith',
+    EQUALS = 'eq',
+    DOES_NOT_EQUAL = 'ne',
+    DOES_NOT_CONTAIN = 'nc',
+    GREATER_THAN = 'gt',
+    LESS_THAN = 'lt',
+    LESS_THAN_EQUAL = 'le',
+    GREATER_THAN_EQUAL = 'ge'
 }
 
 @Injectable()
@@ -34,14 +41,17 @@ export class GraphQLService {
     constructor(private http: HttpClient) { }
 
     public getData(dataState: IDataState, filteringOperands?: any, filteringOperator?: FilteringLogic): any {
-        const builtFilteringExpressions = this.buildVariables(filteringOperands, filteringOperator);
+        const builtFilteringExpressions = this._buildAdvancedFilterExpression(filteringOperands, filteringOperator);
         const query = this.getQuery(dataState.key);
-        const variables = { filteringOperands: builtFilteringExpressions };
+        const variables = { filter: builtFilteringExpressions };
+
+        console.log('***** FILTER INPUT ARGUMENT ******')
+        console.log(JSON.stringify(variables,null,'\t'));
 
         if (dataState.parentID) {
             Object.assign(variables, { parentID: dataState.parentID });
         }
-        
+
         return this.http.post(
             this.configUrl,
             JSON.stringify({ query, variables }),
@@ -51,28 +61,89 @@ export class GraphQLService {
         );
     }
 
-    private buildVariables(filteringOperands: any[] = [], filteringOperator?: FilteringLogic): any {
-        const result: IFilteringOperand[] = [];
-
-        filteringOperands.forEach(operand => {
+    private _buildAdvancedFilterExpression(operands: any, operator: any): any {
+        const filterExpression: { [k: string]: any } = {};
+        operands.forEach((operand: any) => {
             if (operand instanceof FilteringExpressionsTree) {
-                const subGroupVariables = this.buildVariables(operand.filteringOperands, operand.operator);
-                result.push(subGroupVariables);
+                filterExpression[FilteringLogic[operator]].push(this._buildAdvancedFilterExpression(
+                    operand.filteringOperands,
+                    operand.operator));
             } else {
-                const fieldName = operand.fieldName;
-                const searchValueString = typeof operand.searchVal === 'string' ?
-                    operand.searchVal :
-                    '';
-                const searchValueNumber = typeof operand.searchVal === 'number' ?
-                    operand.searchVal :
-                    null;
-                const conditionName = operand.condition.name;
+                const value = operand.searchVal;
+                const isNumberValue = typeof value === 'number' ? true : false;
+                const filterValue = isNumberValue ? value.toString() : value;
+                const field = operand.fieldName;
+                const expression: { [k: string]: any } = {};
 
-                result.push({ fieldName, searchValueString, searchValueNumber, conditionName });
+                expression.field = field;
+
+                const isEmpty = Object.keys(filterExpression).length === 0;
+                if (isEmpty) {
+                    filterExpression[FilteringLogic[operator]] = [];
+                    console.log(JSON.stringify(filterExpression));
+                }
+                switch (operand.condition.name) {
+                    case 'contains': {
+                        expression[FILTER_OPERATION.CONTAINS] = filterValue;
+                        break;
+                    }
+                    case 'startsWith': {
+                        expression[FILTER_OPERATION.STARTS_WITH] = filterValue;
+                        break;
+                    }
+                    case 'endsWith': {
+                        expression[FILTER_OPERATION.ENDS_WITH] = filterValue;
+                        break;
+                    }
+                    case 'equals': {
+                        expression[FILTER_OPERATION.EQUALS] = filterValue;
+                        break;
+                    }
+                    case 'doesNotEqual': {
+                        expression[FILTER_OPERATION.DOES_NOT_EQUAL] = filterValue;
+                        break;
+                    }
+                    case 'doesNotContain': {
+                        expression[FILTER_OPERATION.DOES_NOT_CONTAIN] = filterValue;
+                        break;
+                    }
+                    case 'greaterThan': {
+                        expression[FILTER_OPERATION.GREATER_THAN] = filterValue;
+                        break;
+                    }
+                    case 'greaterThanOrEqualTo': {
+                        expression[FILTER_OPERATION.GREATER_THAN_EQUAL] = filterValue;
+                        break;
+                    }
+                    case 'lessThan': {
+                        expression[FILTER_OPERATION.LESS_THAN] = filterValue;
+                        break;
+                    }
+                    case 'lessThanOrEqualTo': {
+                        expression[FILTER_OPERATION.LESS_THAN_EQUAL] = filterValue;
+                        break;
+                    }
+                    case 'empty': {
+                        expression[FILTER_OPERATION.EQUALS] = '0';
+                        break;
+                    }
+                    case 'notEmpty': {
+                        expression[FILTER_OPERATION.GREATER_THAN] = '0';
+                        break;
+                    }
+                    case 'null': {
+                        expression[FILTER_OPERATION.EQUALS] = 'null';
+                        break;
+                    }
+                    case 'notNull': {
+                        expression[FILTER_OPERATION.DOES_NOT_EQUAL] = 'null';
+                        break;
+                    }
+                }
+                filterExpression[FilteringLogic[operator]].push({ expression });
             }
         });
-
-        return JSON.stringify({ filteringOperands: result, filteringOperator });
+        return filterExpression;
     }
 
     private getQuery(key: string) {

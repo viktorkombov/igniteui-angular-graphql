@@ -1,7 +1,20 @@
 const { ApolloServer, gql } = require('apollo-server');
 const artists = require('./data/artists.json');
 const albums = require('./data/albums.json');
-const songs = require('./data/songs.json')
+const songs = require('./data/songs.json');
+
+const FILTER_OPERATION = {
+    CONTAINS: 'contains',
+    STARTS_WITH: 'startswith',
+    ENDS_WITH: 'endswith',
+    EQUALS: 'eq',
+    DOES_NOT_EQUAL: 'ne',
+    DOES_NOT_CONTAIN: 'nc',
+    GREATER_THAN: 'gt',
+    LESS_THAN: 'lt',
+    LESS_THAN_EQUAL: 'le',
+    GREATER_THAN_EQUAL: 'ge'
+}
 
 let typeDefs = gql`
 
@@ -30,122 +43,147 @@ type Song {
   Album: String,
 }
 
+input FilterInput {
+    expression: FilterExpressionInput
+    And: [FilterInput!]
+    Or: [FilterInput!]
+}
+
+input FilterExpressionInput {
+    field: String!
+    eq: String
+    gt: String
+    ge: String
+    lt: String
+    le: String
+    ne: String
+    nc: String
+    contains: String
+    startswith: String
+    endswith: String
+}
+
 type Query {
-    Artists(filteringOperands: [ID!]): [Artist],
-    Albums(filteringOperands: [ID!], parentID: Int): [Album],
-    Songs(filteringOperands: [ID!], parentID: String): [Song],
+    Artists(_filter: FilterInput): [Artist],
+    Albums(parentID: Int, _filter: FilterInput): [Album],
+    Songs(parentID: String, _filter: FilterInput): [Song],
 }
 `;
 
 const resolvers = {
     Query: {
-        Artists(parent, args, context, info) {
-            const filteringOperands = JSON.parse(args.filteringOperands);
-            return filterFunction(artists, filteringOperands.filteringOperands, filteringOperands.filteringOperator);
+        Artists(parent, args) {
+            return filter(artists, args._filter);
         },
-        Albums(parent, args, context, info) {
-            const filteringOperands = JSON.parse(args.filteringOperands);
-            return filterFunction(albums, filteringOperands.filteringOperands, filteringOperands.filteringOperator, args.parentID);
+        Albums(parent, args) {
+            return filter(albums, args._filter, args.parentID);
         },
-        Songs(parent, args, context, info) {
-            const filteringOperands = JSON.parse(args.filteringOperands);
-            return filterFunction(songs, filteringOperands.filteringOperands, filteringOperands.filteringOperator, args.parentID);
-        }
+        Songs(parent, args) {
+            return filter(songs, args._filter, args.parentID);
+        },
     },
 };
 
-function filterFunction(data, filteringOperands, filteringOperator, parentID) {
-    let resultAnd = data.slice();
-    let resultOr = [];
+function filter(data, expressions, parentID) {
+    let i;
+    let rec;
+    const len = data.length;
+    const res = [];
 
-    if (filteringOperands?.length) {
-        filteringOperands.forEach(operand => {
-            // checks whether the current operand is a subGroup
-            if (typeof operand === 'string') {
-                operand = JSON.parse(operand);
-                if (filteringOperator === 0) {
-                    resultAnd = filterFunction(resultAnd, operand.filteringOperands, operand.filteringOperator, parentID);
-                } else {
-                    resultOr = filterFunction(resultOr, operand.filteringOperands, operand.filteringOperator, parentID);
-                }
-            } else {
-                const fieldName = operand.fieldName;
-                const filterValue = operand.searchValueString ?
-                    operand.searchValueString.toLowerCase() :
-                    operand.searchValueNumber;
-                const filterOperandConditionName = operand.conditionName;
-
-                if (filteringOperator === 0) {
-                    resultAnd = filterImplementation(resultAnd, fieldName, filterValue, filterOperandConditionName, parentID);
-                } else {
-                    resultOr.push(...filterImplementation(data, fieldName, filterValue, filterOperandConditionName, parentID));
-                }
-            }
-        });
-    } else if (parentID) {
-        resultAnd = resultAnd.filter(record => record.ParentID === parentID);
+    for (i = 0; i < len; i++) {
+        rec = data[i];
+        if (rec.ParentID === parentID && matchRecord(rec, expressions)) {
+            res.push(rec);
+        }
     }
-    return filteringOperator === 0 ? resultAnd : resultOr;
+    return res;
 }
 
-function filterImplementation(d, fieldName, filterValue, filterOperandConditionName, parentID) {
-    d = d.filter(record => {
-        if (parentID) {
-            if (parentID !== record.ParentID) {
-                return false;
-            }
-        }
+function matchRecord(rec, expressions) {
+    if (expressions) {
+        const expressionKey = Object.keys(expressions)[0];
+        if (expressionKey !== 'expression') {
+            const expressionsTree = expressions[expressionKey];
+            const operator = expressionKey;
+            let matchOperand;
 
-        switch (filterOperandConditionName) {
-            case 'contains': {
-                const recordValue = record[fieldName].toLowerCase();
-                return recordValue.includes(filterValue);
+            if (expressionsTree && expressionsTree.length) {
+                for (const operand of expressionsTree) {
+                    matchOperand = matchRecord(rec, operand);
+
+                    // Return false if at least one operand does not match and the filtering logic is And
+                    if (!matchOperand && operator === 'And') {
+                        return false;
+                    }
+
+                    // Return true if at least one operand matches and the filtering logic is Or
+                    if (matchOperand && operator === 'Or') {
+                        return true;
+                    }
+                }
+
+                return matchOperand;
             }
-            case 'startsWith': {
-                const recordValue = record[fieldName].toLowerCase();
-                return recordValue.startsWith(filterValue);
-            }
-            case 'endsWith': {
-                const recordValue = record[fieldName].toLowerCase();
-                return recordValue.endsWith(filterValue);
-            }
-            case 'equals': {
-                return record[fieldName] === filterValue;
-            }
-            case 'doesNotEqual': {
-                return record[fieldName] !== filterValue;
-            }
-            case 'doesNotContain': {
-                const recordValue = record[fieldName].toLowerCase();
-                return !recordValue.includes(filterValue);
-            }
-            case 'greaterThan': {
-                return record[fieldName] > filterValue;
-            }
-            case 'greaterThanOrEqualTo': {
-                return record[fieldName] >= filterValue;
-            }
-            case 'lessThan': {
-                return record[fieldName] < filterValue;
-            }
-            case 'lessThanOrEqualTo': {
-                return record[fieldName] <= filterValue;
-            }
-            case 'empty': {
-                return record[fieldName].length === 0;
-            }
-            case 'notEmpty': {
-                return record[fieldName].length > 0;
-            }
-            case 'null': {
-                return record[fieldName].length === null;
-            }
-            case 'notNull': {
-                return record[fieldName].length !== null;
-            }
+
+            return true;
+        } else {
+            const expression = expressions.expression;
+            return findMatchByExpression(rec, expression);
         }
-    })
-    return d;
+    }
+    return true;
+}
+
+function findMatchByExpression(rec, expr) {
+    const condition = Object.keys(expr).find(key => key !== 'field');
+    const val = rec[expr.field];
+    const filterVal = expr[condition];
+    return conditionLogic(val, condition, filterVal);
+}
+
+function conditionLogic(value, condition, filterValue) {
+    if (condition === FILTER_OPERATION.GREATER_THAN ||
+        condition === FILTER_OPERATION.GREATER_THAN_EQUAL ||
+        condition === FILTER_OPERATION.LESS_THAN ||
+        condition === FILTER_OPERATION.LESS_THAN_EQUAL) {
+        value = Number(value);
+    } else {
+        value = value.toString().toLowerCase();
+        filterValue = filterValue.toLowerCase();
+    }
+
+    switch (condition) {
+        case FILTER_OPERATION.CONTAINS: {
+            return value.includes(filterValue);
+        }
+        case FILTER_OPERATION.STARTS_WITH: {
+            return value.startsWith(filterValue);
+        }
+        case FILTER_OPERATION.ENDS_WITH: {
+            return value.endsWith(filterValue);
+        }
+        case FILTER_OPERATION.EQUALS: {
+            return value === filterValue;
+        }
+        case FILTER_OPERATION.DOES_NOT_EQUAL: {
+            return value !== filterValue;
+        }
+        case FILTER_OPERATION.DOES_NOT_CONTAIN: {
+            return !value.includes(filterValue);
+        }
+        case FILTER_OPERATION.GREATER_THAN: {
+            return value > filterValue;
+        }
+        case FILTER_OPERATION.GREATER_THAN_EQUAL: {
+            return value >= filterValue;
+        }
+        case FILTER_OPERATION.LESS_THAN: {
+            return val < filterValue;
+        }
+        case FILTER_OPERATION.LESS_THAN_EQUAL: {
+            return val <= filterValue;
+        }
+    }
 }
 
 // The ApolloServer constructor requires two parameters: your schema
