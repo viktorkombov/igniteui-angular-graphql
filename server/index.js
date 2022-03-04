@@ -178,10 +178,10 @@ function conditionLogic(value, condition, filterValue) {
             return value >= filterValue;
         }
         case FILTER_OPERATION.LESS_THAN: {
-            return val < filterValue;
+            return value < filterValue;
         }
         case FILTER_OPERATION.LESS_THAN_EQUAL: {
-            return val <= filterValue;
+            return value <= filterValue;
         }
     }
 }
